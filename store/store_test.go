@@ -58,8 +58,8 @@ func TestStore_Close(t *testing.T) {
 	s, cleanup := cltest.NewStore()
 	defer cleanup()
 
-	s.RunChannel.Send("whatever", nil)
-	s.RunChannel.Send("whatever", nil)
+	s.RunChannel.Send("whatever")
+	s.RunChannel.Send("whatever")
 
 	rr, open := <-s.RunChannel.Receive()
 	assert.True(t, open)
@@ -78,20 +78,17 @@ func TestQueuedRunChannel_Send(t *testing.T) {
 	t.Parallel()
 
 	rq := store.NewQueuedRunChannel()
-	ibn1 := cltest.IndexableBlockNumber(17)
 
-	assert.NoError(t, rq.Send("first", ibn1))
+	assert.NoError(t, rq.Send("first"))
 	rr1 := <-rq.Receive()
-	assert.Equal(t, ibn1, rr1.BlockNumber)
+	assert.NotNil(t, rr1)
 }
 
 func TestQueuedRunChannel_Send_afterClose(t *testing.T) {
 	t.Parallel()
 
 	rq := store.NewQueuedRunChannel()
-	ibn1 := cltest.IndexableBlockNumber(17)
-
 	rq.Close()
 
-	assert.Error(t, rq.Send("first", ibn1))
+	assert.Error(t, rq.Send("first"))
 }

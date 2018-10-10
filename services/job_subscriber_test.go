@@ -172,14 +172,13 @@ func TestJobSubscriber_OnNewHead_OnlySendPendingConfirmationsAndInProgress(t *te
 			job, initr := cltest.NewJobWithWebInitiator()
 			assert.Nil(t, store.SaveJob(&job))
 			run := job.NewRun(initr)
-			run = run.ApplyResult(models.RunResult{Status: test.status, JobRunID: run.ID})
+			run.ApplyResult(models.RunResult{Status: test.status, JobRunID: run.ID})
 			assert.Nil(t, store.Save(&run))
 
 			block := cltest.NewBlockHeader(10)
 			js.OnNewHead(block)
 			if test.wantSend {
 				assert.Equal(t, 1, len(mockRunChannel.Runs))
-				assert.Equal(t, block.Number, mockRunChannel.BlockNumbers[0].Number)
 			} else {
 				assert.Equal(t, 0, len(mockRunChannel.Runs))
 			}

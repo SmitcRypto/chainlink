@@ -61,56 +61,63 @@ func (jr JobRun) ForLogger(kvs ...interface{}) []interface{} {
 // UnfinishedTaskRuns returns a list of TaskRuns for a JobRun
 // which are not Completed or Errored.
 func (jr JobRun) UnfinishedTaskRuns() []TaskRun {
-	unfinished := jr.TaskRuns
-	for _, tr := range jr.TaskRuns {
-		if tr.Status.Completed() {
-			unfinished = unfinished[1:]
-		} else if tr.Status.Errored() {
-			return []TaskRun{}
-		} else {
-			return unfinished
+	nextTaskIndex, runnable := jr.nextTaskIndex()
+	if runnable {
+		return jr.TaskRuns[nextTaskIndex:]
+	}
+	return []TaskRun{}
+}
+
+func (jr JobRun) nextTaskIndex() (int, bool) {
+	for index, tr := range jr.TaskRuns {
+		if !(tr.Status.Completed() || tr.Status.Errored()) {
+			return index, true
 		}
 	}
-	return unfinished
+	return 0, false
 }
 
 // NextTaskRun returns the next immediate TaskRun in the list
 // of unfinished TaskRuns.
-func (jr JobRun) NextTaskRun() TaskRun {
-	return jr.UnfinishedTaskRuns()[0]
+func (jr JobRun) NextTaskRun() *TaskRun {
+	return &jr.UnfinishedTaskRuns()[0]
+}
+
+// TasksRemain returns true if there are unfinished tasks left for this job run
+func (jr JobRun) TasksRemain() bool {
+	_, runnable := jr.nextTaskIndex()
+	return runnable
 }
 
 // Runnable checks that the number of confirmations have passed since the
 // job's creation height to determine if the JobRun can be started. Returns
 // true for non-JobSubscriber (runlog & ethlog) initiators.
-func (jr JobRun) Runnable(currentHeight *IndexableBlockNumber, minConfs uint64) bool {
-	if jr.CreationHeight == nil || currentHeight == nil {
+func (jr JobRun) Runnable(currentHeight uint64, minConfs uint64) bool {
+	if jr.CreationHeight == nil {
 		return true
 	}
 
-	diff := new(big.Int).Sub(currentHeight.ToInt(), jr.CreationHeight.ToInt())
+	diff := new(big.Int).Sub(new(big.Int).SetUint64(currentHeight), jr.CreationHeight.ToInt())
 	min := new(big.Int).SetUint64(minConfs)
 	min = min.Sub(min, big.NewInt(1))
 	return diff.Cmp(min) >= 0
 }
 
 // ApplyResult updates the JobRun's Result and Status
-func (jr JobRun) ApplyResult(result RunResult) JobRun {
+func (jr *JobRun) ApplyResult(result RunResult) {
 	jr.Result = result
 	jr.Status = result.Status
 	if jr.Status.Completed() {
 		jr.CompletedAt = null.Time{Time: time.Now(), Valid: true}
 	}
-	return jr
 }
 
 // MarkCompleted sets the JobRun's status to completed and records the
 // completed at time.
-func (jr JobRun) MarkCompleted() JobRun {
+func (jr *JobRun) MarkCompleted() {
 	jr.Status = RunStatusCompleted
 	jr.Result.Status = RunStatusCompleted
 	jr.CompletedAt = null.Time{Time: time.Now(), Valid: true}
-	return jr
 }
 
 // TaskRun stores the Task and represents the status of the
@@ -143,29 +150,16 @@ func (tr TaskRun) ForLogger(kvs ...interface{}) []interface{} {
 	return append(kvs, output...)
 }
 
-// MergeTaskParams merges the existing parameters on a TaskRun with the given JSON.
-func (tr TaskRun) MergeTaskParams(j JSON) (TaskRun, error) {
-	merged, err := j.Merge(tr.Task.Params)
-	if err != nil {
-		return tr, fmt.Errorf("TaskRun#Merge merging params: %v", err.Error())
-	}
-
-	tr.Task.Params = merged
-	return tr, nil
-}
-
 // ApplyResult updates the TaskRun's Result and Status
-func (tr TaskRun) ApplyResult(result RunResult) TaskRun {
+func (tr *TaskRun) ApplyResult(result RunResult) {
 	tr.Result = result
 	tr.Status = result.Status
-	return tr
 }
 
 // MarkCompleted marks the task's status as completed.
-func (tr TaskRun) MarkCompleted() TaskRun {
+func (tr *TaskRun) MarkCompleted() {
 	tr.Status = RunStatusCompleted
 	tr.Result.Status = RunStatusCompleted
-	return tr
 }
 
 // MarkPendingConfirmations marks the task's status as blocked.

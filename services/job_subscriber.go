@@ -84,14 +84,16 @@ func (js *jobSubscriber) Disconnect() {
 
 // OnNewHead resumes all pending job runs based on the new head activity.
 func (js *jobSubscriber) OnNewHead(head *models.BlockHeader) {
-	pendingRuns, err := js.store.JobRunsWithStatus(models.RunStatusPendingConfirmations, models.RunStatusInProgress)
+	pendingRuns, err := js.store.JobRunsWithStatus(models.RunStatusPendingConfirmations)
 	if err != nil {
 		logger.Error("error fetching pending job runs:", err.Error())
 	}
 
 	ibn := head.ToIndexableBlockNumber()
+	logger.Debugw("Received new head", []interface{}{"height", ibn.Number}...)
 	for _, jr := range pendingRuns {
-		if err := js.store.RunChannel.Send(jr.ID, ibn); err != nil {
+		err := WakeConfirmingTask(&jr, js.store, ibn)
+		if err != nil {
 			logger.Error("JobSubscriber.OnNewHead: ", err.Error())
 		}
 	}

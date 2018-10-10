@@ -132,7 +132,7 @@ func (r *Recurring) AddJob(job models.JobSpec) {
 		if !job.Ended(r.Clock.Now()) {
 			r.Cron.AddFunc(string(initr.Schedule), func() {
 				input := models.RunResult{}
-				_, err := EnqueueRunWithValidPayment(job, initr, input, r.store)
+				_, err := EnqueueRun(job, initr, input, r.store, nil)
 				if err != nil && !expectedRecurringScheduleJobError(err) {
 					logger.Errorw(err.Error())
 				}
@@ -176,7 +176,7 @@ func (ot *OneTime) RunJobAt(initr models.Initiator, job models.JobSpec) {
 			logger.Error(err.Error())
 			return
 		}
-		_, err := EnqueueRunWithValidPayment(job, initr, models.RunResult{}, ot.Store)
+		_, err := EnqueueRun(job, initr, models.RunResult{}, ot.Store, nil)
 		if err != nil {
 			logger.Error(err.Error())
 			initr.Ran = false

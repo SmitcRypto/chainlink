@@ -296,6 +296,8 @@ func TestIntegration_ExternalAdapter_RunLogInitiated(t *testing.T) {
 	assert.Equal(t, eaExtra, res.String())
 }
 
+// This test ensures that the response body of an external adapter are supplied
+// as params to the successive task
 func TestIntegration_ExternalAdapter_Copy(t *testing.T) {
 	t.Parallel()
 
@@ -346,6 +348,9 @@ func TestIntegration_ExternalAdapter_Copy(t *testing.T) {
 	assert.Equal(t, eaQuote, res.String())
 }
 
+// This test ensures that an bridge adapter task is resumed from pending after
+// sending out a request to an external adapter and waiting to receive a
+// request back
 func TestIntegration_ExternalAdapter_Pending(t *testing.T) {
 	t.Parallel()
 

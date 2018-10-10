@@ -278,7 +278,8 @@ func (ht *HeadTracker) unsubscribeFromHead() error {
 func (ht *HeadTracker) fastForwardHeadFromEth() {
 	header, err := ht.store.TxManager.GetBlockByNumber("latest")
 	if err != nil {
-		logger.Errorw("Unable to update latest block header", "err", err)
+		// FIXME: This is super noisy during almost ALL Tests!!!!!!!!!!!!!!!
+		//logger.Errorw("Unable to update latest block header", "err", err)
 		return
 	}
 

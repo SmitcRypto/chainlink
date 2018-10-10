@@ -190,18 +190,6 @@ func (orm *ORM) SaveServiceAgreement(sa *models.ServiceAgreement) error {
 	return tx.Commit()
 }
 
-// SaveCreationHeight stores the JobRun in the database with the given
-// block number.
-func (orm *ORM) SaveCreationHeight(jr models.JobRun, bn *models.IndexableBlockNumber) (models.JobRun, error) {
-	if jr.CreationHeight != nil || bn == nil {
-		return jr, nil
-	}
-
-	dup := bn.Number
-	jr.CreationHeight = &dup
-	return jr, orm.Save(&jr)
-}
-
 // JobRunsWithStatus returns the JobRuns which have the passed statuses.
 func (orm *ORM) JobRunsWithStatus(statuses ...models.RunStatus) ([]models.JobRun, error) {
 	runs := []models.JobRun{}
